@@ -1,0 +1,22 @@
+.container {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: #f2f4f5;
+  font-family: PingFang-SC-Regular, Helvetica Neue, Helvetica, STHeitiSC-Light, Microsoft YaHei, Arial, sans-serif;
+}
+
+.content {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 49px;
+  width: 100%;
+  overflow: scroll;
+  box-sizing: border-box;
+}
+
+
+
+

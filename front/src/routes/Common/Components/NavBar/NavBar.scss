@@ -1,0 +1,24 @@
+.container {
+  position: fixed;
+  top: 58px;
+  width: 100%;
+  border-bottom: 1px solid #e9e9ea;
+}
+
+.content{
+  width: 1300px;
+  margin: 0 auto;
+  height: 40px;
+  line-height: 40px;
+}
+
+.nav {
+  font-size: 14px;
+  color: #333;
+  margin-right: 20px;
+}
+
+.active {
+  color: green;
+}
+

@@ -1,0 +1,31 @@
+.container {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  border-bottom: 2px solid green;
+}
+
+.header {
+  width: 1300px;
+  margin: 0 auto;
+  height: 58px;
+
+}
+
+.search_input {
+  font-size: 12px;
+  height: 16px;
+  line-height: 16px;
+  color: rgb(102, 102, 102);
+  border-width: 1px 0px 1px 1px;
+  border-style: solid solid solid;
+  border-color: rgb(182, 182, 182) rgb(182, 182, 182) rgb(182, 182, 182);
+  border-image: initial;
+  border-right: 0px;
+}
+
+.search_btn {
+  float: left;
+  color: #fff;
+  background-color: green;
+}
