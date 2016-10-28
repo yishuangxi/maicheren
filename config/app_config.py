@@ -1,7 +1,7 @@
 # coding:utf8
 import os
 
-settings = dict(
+app_config = dict(
   gzip=True,
   debug=True,
   cookie_secret="yIFr7VYAxmipCxZFaIK3YyMYZxFHEB7LOW1SFe6cI",

@@ -16,7 +16,7 @@ define('application_name', default='taiqiuabc', type=str)
 define('debug', default=False, type=bool)
 tornado.options.parse_command_line()
 
-from config.app_config import settings
+from config.app_config import app_config
 from router import handlers
 
 
@@ -25,7 +25,7 @@ def release():
 
 
 def create_app():
-  return tornado.web.Application(handlers, **settings)
+  return tornado.web.Application(handlers, **app_config)
 
 
 def main():
