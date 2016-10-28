@@ -2,18 +2,24 @@
 import datetime, time
 from tornado.gen import coroutine, Return
 from config.mysql_config import mysql_config
+from config.redis_config import redis_config
 import asynctorndb
 from functools import wraps
 from collections import deque
 from utils.database import AsyncConnectionPool
+import redis
+
+model_db_instance = AsyncConnectionPool(host=mysql_config['host'], database=mysql_config['database'],
+                                  user=mysql_config['user'], passwd=mysql_config['password'],
+                                  max_idle_time=2000, max_conn_num=100)
+model_redis = redis.StrictRedis(host=redis_config['host'], port=redis_config['port'], db=5)
 
 
 class BaseModel(object):
   def __init__(self):
     super(BaseModel, self).__init__()
-    self.db = AsyncConnectionPool(host=mysql_config['host'], database=mysql_config['database'],
-                                  user=mysql_config['user'], passwd=mysql_config['password'],
-                                  max_idle_time=2000, max_conn_num=100)
+    self.db = model_db_instance
+    self.redis = redis
 
   @property
   def now(self):
