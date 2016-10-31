@@ -6,20 +6,22 @@ from config.redis_config import redis_config
 import asynctorndb
 from functools import wraps
 from collections import deque
-from utils.database import AsyncConnectionPool
+# from utils.database import AsyncConnectionPool
 import redis
+# from utils.greenify.db_pool import AsyncDBConnection
+from utils.database import AsyncConnectionPool
 
 model_db_instance = AsyncConnectionPool(host=mysql_config['host'], database=mysql_config['database'],
-                                  user=mysql_config['user'], passwd=mysql_config['password'],
-                                  max_idle_time=2000, max_conn_num=100)
-model_redis = redis.StrictRedis(host=redis_config['host'], port=redis_config['port'], db=5)
+                                        user=mysql_config['user'], passwd=mysql_config['password'],
+                                        max_idle_time=100, max_conn_num=100)
+model_redis_instance = redis.StrictRedis(host=redis_config['host'], port=redis_config['port'], db=5)
 
 
 class BaseModel(object):
   def __init__(self):
     super(BaseModel, self).__init__()
     self.db = model_db_instance
-    self.redis = redis
+    self.redis = model_redis_instance
 
   @property
   def now(self):

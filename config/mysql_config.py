@@ -2,7 +2,7 @@
 mysql_config = {
   'host': 'localhost',
   'port': '',
-  'database': 'carseller',
+  'database': 'maicheren',
   'user': 'root',
-  'password': '111111'
+  'password': 'Woshi123@'
 }

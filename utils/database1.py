@@ -1,9 +1,10 @@
-# coding:utf8
-from tornado.gen import coroutine, Return
+# coding: utf8
 import asynctorndb
-from functools import wraps
 from collections import deque
+from tornado.gen import coroutine, Return
 import time
+from functools import wraps, partial
+from tornado import ioloop
 
 
 class ConnectionTimeoutException(Exception):
@@ -26,19 +27,58 @@ class ConnectionOverloadException(Exception):
     return repr(self.value)
 
 
+class Connection(asynctorndb.Connection):
+  def __init__(self, pool, *args, **kwargs):
+    super(Connection, self).__init__(*args, **kwargs)
+    self._pool = pool
+    self.idle_start_time = time.time()
+    self.connection_timeout = None
+
+  def ensure_connection_timeout(self, timeout=1, error=ConnectionTimeoutException('no sql')):
+    """
+    :param timeout: 超时时长
+    :param error: 超时的时候，需要报的超时异常对象
+    :return:
+    """
+    self.connection_timeout = ioloop.IOLoop.current().add_timeout(time.time() + timeout,
+                                                                  partial(self.on_timeout, error=error))
+
+  def on_timeout(self, error):
+    self._pool._recycle(self, close=True)
+    if error is not None:
+      raise error
+
+  def remove_timeout(self):
+    if isinstance(self.connection_timeout, ioloop._Timeout):
+      ioloop.IOLoop.remove_timeout(self.connection_timeout)
+      self.connection_timeout = None
+
+
 class AsyncConnectionPool(object):
+  """异步连接池"""
+
   def __init__(self, host, database, user, passwd, max_idle_time=2000, max_conn_num=100):
+    """
+    :param host:
+    :param database:
+    :param user:
+    :param passwd:
+    :param max_idle_time: 连接最大空闲时间，单位为秒
+    :param max_conn_num: 最大连接数
+    """
+    super(AsyncConnectionPool, self).__init__()
     self._host = host
     self._database = database
     self._user = user
     self._passwd = passwd
     self._max_idle_time = max_idle_time
     self._max_conn_num = max_conn_num
-    self._idle_queue = deque()
-    self._busy_queue = deque()
+
+    self._idle_queue = deque(maxlen=max_conn_num)
+    self._busy_queue = deque(maxlen=max_conn_num)
 
   @coroutine
-  def get_conn(self, sql):
+  def _get_conn(self, sql):
     # 如果busy_queue已经达到最大值了，则抛出已经达到最大连接数异常
     if len(self._busy_queue) >= self._max_conn_num:
       raise ConnectionOverloadException()
@@ -56,22 +96,23 @@ class AsyncConnectionPool(object):
 
   @coroutine
   def _generate_conn(self, sql):
-    conn = asynctorndb.Connection(host=self._host, database=self._database, user=self._user, passwd=self._passwd)
+    # 这里把self传入，则在conn中可以通过conn._pool引用到该pool对象
+    conn = Connection(self, host=self._host, database=self._database, user=self._user, passwd=self._passwd)
+    conn.ensure_connection_timeout(timeout=1, error=ConnectionTimeoutException(sql))
     yield conn.connect()
     raise Return(conn)
 
   def _recycle_conn(self, conn):
     """回收连接"""
     self._busy_queue.remove(conn)
-    conn.idle_start_time = time.time()
-    self._idle_queue.append(conn)
-    # if conn.connection_timeout is not None:
-    #   conn.remove_timeout(conn.connection_timeout)
-    #   conn.close()
-    # else:
-    #   # 重置一下conn的idle_start_time属性
-    #   conn.idle_start_time = time.time()
-    #   self._idle_queue.append(conn)
+
+    if conn.connection_timeout is not None:
+      conn.remove_timeout(conn.connection_timeout)
+      conn.close()
+    else:
+      # 重置一下conn的idle_start_time属性
+      conn.idle_start_time = time.time()
+      self._idle_queue.append(conn)
     # 顺便释放空闲连接
     self._release_idle_conn()
 
@@ -84,10 +125,11 @@ class AsyncConnectionPool(object):
 
   @coroutine
   def __do_sql(self, method, sql, *args, **kwargs):
-    conn = yield self.get_conn(sql)
+    conn = yield self._get_conn(sql)
     if hasattr(conn, method):
       method = getattr(conn, method)
       res = yield method(sql, *args, **kwargs)
+      # 用完了conn，记得回收
       self._recycle_conn(conn)
       raise Return(res)
 
